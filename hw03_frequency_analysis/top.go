@@ -20,7 +20,7 @@ func Top10(text string) []string {
 		Count int
 	}
 
-	var wordCountsSlice []wordCount
+	wordCountsSlice := make([]wordCount, 0, len(wordCounts))
 
 	for word, count := range wordCounts {
 		wordCountsSlice = append(wordCountsSlice, wordCount{word, count})
