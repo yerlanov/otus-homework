@@ -76,7 +76,7 @@ func worker(tasksChan <-chan Task, errsChan chan<- error, doneChan <-chan struct
 				}
 			}
 		case <-doneChan:
-			return // Завершаем горутину по сигналу об ошибке
+			return
 		}
 	}
 }
