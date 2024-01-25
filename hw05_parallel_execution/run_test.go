@@ -113,12 +113,12 @@ func TestRun(t *testing.T) {
 	t.Run("run concurrency without sleep", func(t *testing.T) {
 		tasksCount := 1000
 		workerCount := 10
-		startedTasks := make(chan struct{}, tasksCount)
+		var startedTasksCount int32
 
 		tasks := make([]Task, 0, tasksCount)
 		for i := 0; i < tasksCount; i++ {
 			tasks = append(tasks, func() error {
-				startedTasks <- struct{}{}
+				atomic.AddInt32(&startedTasksCount, 1)
 				return nil
 			})
 		}
@@ -126,10 +126,8 @@ func TestRun(t *testing.T) {
 		go Run(tasks, workerCount, 0)
 
 		require.Eventually(t, func() bool {
-			return len(startedTasks) >= tasksCount
+			return atomic.LoadInt32(&startedTasksCount) >= int32(tasksCount)
 		}, 1*time.Second, 10*time.Millisecond, "not all tasks were started")
-
-		close(startedTasks)
 	})
 
 	t.Run("run ignore error when m equals to 0", func(t *testing.T) {
