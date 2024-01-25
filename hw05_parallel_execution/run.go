@@ -26,8 +26,8 @@ func Run(tasks []Task, n, m int) error {
 		go worker(taskChan, errorsChan, doneChan, &wg)
 	}
 
+	wg.Add(1)
 	go func() {
-		wg.Add(1)
 		defer wg.Done()
 		for _, task := range tasks {
 			select {
