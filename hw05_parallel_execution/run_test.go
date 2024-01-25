@@ -67,4 +67,85 @@ func TestRun(t *testing.T) {
 		require.Equal(t, runTasksCount, int32(tasksCount), "not all tasks were completed")
 		require.LessOrEqual(t, int64(elapsedTime), int64(sumTime/2), "tasks were run sequentially?")
 	})
+
+	t.Run("run with zero workers", func(t *testing.T) {
+		tasksCount := 5
+		tasks := make([]Task, 0, tasksCount)
+		for i := 0; i < tasksCount; i++ {
+			tasks = append(tasks, func() error {
+				time.Sleep(10 * time.Millisecond)
+				return nil
+			})
+		}
+
+		workersCount := 0
+		maxErrorsCount := 1
+
+		err := Run(tasks, workersCount, maxErrorsCount)
+		require.Error(t, err, "should error out with zero workers")
+	})
+
+	t.Run("run with varying task durations", func(t *testing.T) {
+		tasksCount := 20
+		tasks := make([]Task, 0, tasksCount)
+
+		var runTasksCount int32
+
+		for i := 0; i < tasksCount; i++ {
+			taskDuration := time.Millisecond * time.Duration(rand.Intn(100))
+			tasks = append(tasks, func() error {
+				time.Sleep(taskDuration)
+				atomic.AddInt32(&runTasksCount, 1)
+				if i%2 == 0 {
+					return fmt.Errorf("error from task %d", i)
+				}
+				return nil
+			})
+		}
+
+		workersCount := 5
+		maxErrorsCount := 3
+
+		err := Run(tasks, workersCount, maxErrorsCount)
+		require.Truef(t, errors.Is(err, ErrErrorsLimitExceeded), "should exceed error limit")
+	})
+
+	t.Run("run concurrency without sleep", func(t *testing.T) {
+		tasksCount := 1000
+		workerCount := 10
+		startedTasks := make(chan struct{}, tasksCount)
+
+		tasks := make([]Task, 0, tasksCount)
+		for i := 0; i < tasksCount; i++ {
+			tasks = append(tasks, func() error {
+				startedTasks <- struct{}{}
+				return nil
+			})
+		}
+
+		go Run(tasks, workerCount, 0)
+
+		require.Eventually(t, func() bool {
+			return len(startedTasks) >= tasksCount
+		}, 1*time.Second, 10*time.Millisecond, "not all tasks were started")
+
+		close(startedTasks)
+	})
+
+	t.Run("run ignore error when m equals to 0", func(t *testing.T) {
+		tasksCount := 10
+		tasks := make([]Task, tasksCount)
+		for i := range tasks {
+			tasks[i] = func() error {
+				time.Sleep(10 * time.Millisecond)
+				return fmt.Errorf("error")
+			}
+		}
+
+		workersCount := 5
+		maxErrorsCount := 0
+
+		err := Run(tasks, workersCount, maxErrorsCount)
+		require.NoError(t, err, "Run should ignore errors when m <= 0")
+	})
 }
