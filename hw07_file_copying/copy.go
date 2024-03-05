@@ -2,9 +2,10 @@ package main
 
 import (
 	"errors"
-	"github.com/cheggaaa/pb"
 	"io"
 	"os"
+
+	"github.com/cheggaaa/pb"
 )
 
 var (
@@ -60,7 +61,7 @@ func Copy(fromPath, toPath string, offset, limit int64) error {
 	}
 
 	if err != nil {
-		if err != io.EOF {
+		if !errors.Is(err, io.EOF) {
 			return err
 		}
 	}
