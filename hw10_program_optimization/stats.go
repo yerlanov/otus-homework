@@ -3,10 +3,11 @@ package hw10programoptimization
 import (
 	"bufio"
 	"fmt"
-	"github.com/mailru/easyjson"
 	"io"
 	"log"
 	"strings"
+
+	"github.com/mailru/easyjson"
 )
 
 type User struct {
@@ -22,14 +23,12 @@ type User struct {
 type DomainStat map[string]int
 
 func GetDomainStat(r io.Reader, domain string) (DomainStat, error) {
-	u, err := getUsers(r)
-	if err != nil {
-		return nil, fmt.Errorf("get users error: %w", err)
-	}
+	u := getUsers(r)
+
 	return countDomains(u, domain)
 }
 
-func getUsers(r io.Reader) (<-chan User, error) {
+func getUsers(r io.Reader) <-chan User {
 	ch := make(chan User)
 
 	go func() {
@@ -50,14 +49,22 @@ func getUsers(r io.Reader) (<-chan User, error) {
 		}
 	}()
 
-	return ch, nil
+	return ch
 }
 
 func countDomains(usersChan <-chan User, domain string) (DomainStat, error) {
+	if domain == "" {
+		return nil, fmt.Errorf("domain is empty")
+	}
+
 	result := make(DomainStat)
 
 	for user := range usersChan {
-		if user.Email != "" && domain != "" && strings.HasSuffix(user.Email, domain) {
+		if user.Email == "" {
+			continue
+		}
+
+		if strings.HasSuffix(user.Email, domain) {
 			result[strings.ToLower(strings.SplitN(user.Email, "@", 2)[1])]++
 		}
 	}
