@@ -79,4 +79,16 @@ func TestTop10(t *testing.T) {
 			require.Equal(t, expected, Top10(text))
 		}
 	})
+
+	t.Run("mixed case words", func(t *testing.T) {
+		text := "Word word WORD wORd"
+		expected := []string{"WORD", "Word", "wORd", "word"}
+		require.Equal(t, expected, Top10(text))
+	})
+
+	t.Run("multiline and non-standard whitespaces", func(t *testing.T) {
+		text := "word1\nword2\t word3\n\tword1 word2"
+		expected := []string{"word1", "word2", "word3"}
+		require.ElementsMatch(t, expected, Top10(text))
+	})
 }
