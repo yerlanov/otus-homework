@@ -54,9 +54,47 @@ func TestCache(t *testing.T) {
 	})
 }
 
-func TestCacheMultithreading(t *testing.T) {
-	t.Skip() // Remove me if task with asterisk completed.
+func TestCacheLRULogic(t *testing.T) {
+	c := NewCache(2)
 
+	c.Set("aaa", 100)
+	c.Set("bbb", 200)
+
+	// Доступ к "aaa", делая его недавно использованным
+	val, ok := c.Get("aaa")
+	require.True(t, ok)
+	require.Equal(t, 100, val)
+
+	// Добавление нового элемента, что должно вытеснить "bbb"
+	c.Set("ccc", 300)
+	_, ok = c.Get("bbb")
+	require.False(t, ok)
+
+	// Проверка, что "aaa" и "ccc" остались в кэше
+	val, ok = c.Get("aaa")
+	require.True(t, ok)
+	require.Equal(t, 100, val)
+
+	val, ok = c.Get("ccc")
+	require.True(t, ok)
+	require.Equal(t, 300, val)
+}
+
+func TestClearCache(t *testing.T) {
+	c := NewCache(2)
+	c.Set("aaa", 100)
+	c.Set("bbb", 200)
+
+	c.Clear()
+
+	_, ok := c.Get("aaa")
+	require.False(t, ok)
+
+	_, ok = c.Get("bbb")
+	require.False(t, ok)
+}
+
+func TestCacheMultithreading(t *testing.T) {
 	c := NewCache(10)
 	wg := &sync.WaitGroup{}
 	wg.Add(2)
